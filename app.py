@@ -11,7 +11,7 @@ from sklearn.tree import DecisionTreeClassifier
 # Load dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("telecommunications_churn(1).csv")
+    df = pd.read_csv("telecommunications_churn.csv")
     return df
 
 df = load_data()
