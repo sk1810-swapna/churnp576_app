@@ -105,6 +105,7 @@ if uploaded_file is not None:
     st.subheader("📈 Churn Prediction")
     st.markdown(f"**Selected Model:** `{model_choice}`")
     st.markdown(f"**Model Accuracy:** `{selected_accuracy:.4f}`")
+    st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
     if prediction == 1:
         st.error("⚠️ This customer is likely to CHURN.")
@@ -118,5 +119,9 @@ if uploaded_file is not None:
     ax.set_ylabel("Probability")
     st.pyplot(fig)
 
+    # Re-display churn percentage after visualization
+    st.markdown(f"🔍 **Churn Prediction Percentage:** `{probability * 100:.2f}%`")
+
 else:
     st.info("📂 Please upload a CSV file to begin.")
+
