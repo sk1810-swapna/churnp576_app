@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -8,13 +9,25 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 
-# Load dataset
+# Load dataset safely
 @st.cache_data
 def load_data():
-    df = pd.read_csv("telecommunications_churn.csv")
-    return df
+    file_path = "telecommunications_churn.csv"
+    if not os.path.exists(file_path):
+        st.error(f"❌ File not found: `{file_path}`. Please upload it or check your repo.")
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(file_path)
+        return df
+    except Exception as e:
+        st.error(f"⚠️ Error reading CSV: {e}")
+        return pd.DataFrame()
 
 df = load_data()
+
+# Proceed only if data is available
+if df.empty:
+    st.stop()
 
 # Feature Engineering
 df['avg_day_call_duration'] = df['day_mins'] / (df['day_calls'] + 1e-5)
@@ -78,3 +91,4 @@ probability = pipeline.predict_proba(input_df)[0][1]
 st.subheader("Prediction Result")
 st.write(f"Churn Prediction: **{'YES' if prediction == 1 else 'NO'}**")
 st.write(f"Churn Probability: **{probability:.2f}**")
+
