@@ -45,30 +45,46 @@ if uploaded_file is not None:
         ('cat', OneHotEncoder(drop='first'), categorical_features)
     ])
 
-    # Sidebar inputs
-    st.sidebar.header("🔧 Input Customer Features")
-    model_choice = st.sidebar.selectbox("Choose Algorithm", ["Logistic Regression", "Decision Tree", "Random Forest"])
-
-    # Model setup
-    if model_choice == "Logistic Regression":
-        model = LogisticRegression(max_iter=1000, random_state=42)
-    elif model_choice == "Decision Tree":
-        model = DecisionTreeClassifier(random_state=42)
-    else:
-        model = RandomForestClassifier(n_estimators=100, random_state=42)
-
-    pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', model)
-    ])
-
     # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
-    pipeline.fit(X_train, y_train)
-    y_pred = pipeline.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
 
-    # Input form
+    # Define models
+    model_dict = {
+        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
+        "Decision Tree": DecisionTreeClassifier(random_state=42),
+        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
+    }
+
+    # Train all models and compute accuracy
+    model_scores = {}
+    trained_pipelines = {}
+
+    for name, model in model_dict.items():
+        pipe = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('classifier', model)
+        ])
+        pipe.fit(X_train, y_train)
+        acc = accuracy_score(y_test, pipe.predict(X_test))
+        model_scores[name] = acc
+        trained_pipelines[name] = pipe
+
+    # Display model comparison
+    st.subheader("📊 Model Accuracy Comparison")
+    score_df = pd.DataFrame(model_scores.items(), columns=["Model", "Accuracy"]).sort_values(by="Accuracy", ascending=False)
+    st.table(score_df.style.format({"Accuracy": "{:.4f}"}))
+
+    # Identify best model
+    sorted_models = sorted(model_scores.items(), key=lambda x: (-x[1], x[0] != "Random Forest"))
+    best_model_name = sorted_models[0][0]
+    best_accuracy = model_scores[best_model_name]
+
+    st.markdown(f"🏆 **Best Model Based on Accuracy:** `{best_model_name}` with `{best_accuracy:.4f}` accuracy")
+
+    # Sidebar inputs
+    st.sidebar.header("🔧 Input Customer Features")
+    model_choice = st.sidebar.selectbox("Choose Algorithm for Prediction", list(model_dict.keys()))
+
     user_input = {}
     for col in numerical_features:
         min_val = float(df[col].min())
@@ -77,15 +93,18 @@ if uploaded_file is not None:
         user_input[col] = st.sidebar.slider(col, min_value=min_val, max_value=max_val, value=mean_val)
 
     user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted(df['plan_combination'].unique()))
-
     input_df = pd.DataFrame([user_input])
-    prediction = pipeline.predict(input_df)[0]
-    probability = pipeline.predict_proba(input_df)[0][1]
 
-    # Output
-    st.subheader("📊 Prediction Result")
+    # Predict using selected model
+    selected_model = trained_pipelines[model_choice]
+    prediction = selected_model.predict(input_df)[0]
+    probability = selected_model.predict_proba(input_df)[0][1]
+    selected_accuracy = model_scores[model_choice]
+
+    # Display prediction
+    st.subheader("📈 Churn Prediction")
     st.markdown(f"**Selected Model:** `{model_choice}`")
-    st.markdown(f"**Model Accuracy:** `{accuracy:.4f}`")
+    st.markdown(f"**Model Accuracy:** `{selected_accuracy:.4f}`")
 
     if prediction == 1:
         st.error("⚠️ This customer is likely to CHURN.")
@@ -101,4 +120,3 @@ if uploaded_file is not None:
 
 else:
     st.info("📂 Please upload a CSV file to begin.")
-
