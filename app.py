@@ -12,7 +12,7 @@ from sklearn.tree import DecisionTreeClassifier
 # Load dataset safely
 @st.cache_data
 def load_data():
-    file_path = "telecommunications_churn(1).csv"
+    file_path = "telecommunications_churn.csv"
     if not os.path.exists(file_path):
         st.error(f"❌ File not found: `{file_path}`. Please upload it or check your repo.")
         return pd.DataFrame()
