@@ -17,7 +17,21 @@ st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
 #  No file upload — use built-in dataset
-df = pd.read_csv("telecommunications_churn.csv")  # Replace with your actual path or load from memory
+# Embedded sample dataset to avoid FileNotFoundError
+df = pd.DataFrame({
+    "international_plan": [0, 1, 0, 1],
+    "voice_mail_plan": [1, 0, 1, 0],
+    "day_mins": [300, 120, 250, 180],
+    "day_calls": [100, 80, 90, 85],
+    "evening_mins": [200, 150, 180, 160],
+    "evening_calls": [90, 85, 88, 82],
+    "night_mins": [150, 130, 140, 135],
+    "night_calls": [80, 75, 78, 76],
+    "international_mins": [10, 20, 15, 12],
+    "international_calls": [3, 5, 4, 3],
+    "churn": [0, 1, 0, 1]
+})
+ # Replace with your actual path or load from memory
 
 # Feature engineering
 df['plan_combination'] = df['international_plan'].astype(str) + "_" + df['voice_mail_plan'].astype(str)
