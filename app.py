@@ -16,8 +16,7 @@ from sklearn.metrics import accuracy_score
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-#  No file upload — use built-in dataset
-# Embedded sample dataset to avoid FileNotFoundError
+# ✅ Embedded sample dataset
 df = pd.DataFrame({
     "international_plan": [0, 1, 0, 1],
     "voice_mail_plan": [1, 0, 1, 0],
@@ -31,7 +30,6 @@ df = pd.DataFrame({
     "international_calls": [3, 5, 4, 3],
     "churn": [0, 1, 0, 1]
 })
- # Replace with your actual path or load from memory
 
 # Feature engineering
 df['plan_combination'] = df['international_plan'].astype(str) + "_" + df['voice_mail_plan'].astype(str)
@@ -80,17 +78,15 @@ for name, model in model_dict.items():
     model_scores[name] = acc
     trained_pipelines[name] = pipe
 
-# Display model comparison
-st.subheader("📊 Model Accuracy Comparison")
-score_df = pd.DataFrame(model_scores.items(), columns=["Model", "Accuracy"]).sort_values(by="Accuracy", ascending=False)
-st.table(score_df.style.format({"Accuracy": "{:.4f}"}))
-
 # Identify best model
 sorted_models = sorted(model_scores.items(), key=lambda x: (-x[1], x[0] != "Random Forest"))
 best_model_name = sorted_models[0][0]
 best_accuracy = model_scores[best_model_name]
 
-st.markdown(f"🏆 **Best Model Based on Accuracy:** `{best_model_name}` with `{best_accuracy:.4f}` accuracy")
+# ✅ Display best model first
+st.subheader("🏆 Best Model Based on Accuracy")
+st.markdown(f"**Model:** `{best_model_name}`")
+st.markdown(f"**Accuracy:** `{best_accuracy:.4f}`")
 
 # Sidebar inputs
 st.sidebar.header("🔧 Input Customer Features")
@@ -112,10 +108,8 @@ prediction = selected_model.predict(input_df)[0]
 probability = selected_model.predict_proba(input_df)[0][1]
 selected_accuracy = model_scores[model_choice]
 
-# Display prediction
+# ✅ Display churn prediction
 st.subheader("📈 Churn Prediction")
-st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{selected_accuracy:.4f}`")
 st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
 if prediction == 1:
@@ -130,5 +124,7 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Re-display churn percentage after visualization
+# ✅ Re-display churn percentage and selected model accuracy
 st.markdown(f"🔍 **Churn Prediction Percentage:** `{probability * 100:.2f}%`")
+st.markdown(f"📊 **Selected Model:** `{model_choice}`")
+st.markdown(f"✅ **Model Accuracy:** `{selected_accuracy:.4f}`")
