@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# ✅ Replace this with your full dataset for real accuracy
+# ✅ Replace with your full dataset for real accuracy
 df = pd.DataFrame({
     "international_plan": [0, 1, 0, 1],
     "voice_mail_plan": [1, 0, 1, 0],
@@ -101,7 +101,7 @@ selected_accuracy = model_scores[model_choice]
 # ✅ Display churn prediction and exact accuracy
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{selected_accuracy}`")  # No rounding
+st.markdown(f"**Model Accuracy:** `{repr(selected_accuracy)}`")  # Full precision
 st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
 if prediction == 1:
@@ -121,4 +121,5 @@ st.subheader("🏆 Best Model Based on Accuracy")
 best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
 best_accuracy = model_scores[best_model_name]
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_accuracy}`")  # No rounding
+st.markdown(f"**Accuracy:** `{repr(best_accuracy)}`")  # Full precision
+
