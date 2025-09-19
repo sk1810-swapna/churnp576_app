@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -99,10 +101,25 @@ selected_accuracy = model_scores[model_choice]
 # ✅ Display churn prediction and exact accuracy
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{selected_accuracy}`")  # No rounding
+st.markdown(f"**Model Accuracy:** `{selected_accuracy}`")  # Exact value, no rounding
 st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
 if prediction == 1:
     st.error("⚠️ This customer is likely to CHURN.")
 else:
     st.success("✅ This customer is likely to STAY loyal.")
+
+# ✅ Visualization
+fig, ax = plt.subplots(figsize=(4, 3))
+sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
+ax.set_title("Churn Probability Breakdown")
+ax.set_ylabel("Probability")
+st.pyplot(fig)
+
+# ✅ Display best model after prediction
+st.subheader("🏆 Best Model Based on Accuracy")
+best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
+best_accuracy = model_scores[best_model_name]
+st.markdown(f"**Model:** `{best_model_name}`")
+st.markdown(f"**Accuracy:** `{best_accuracy}`")
+
