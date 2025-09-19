@@ -16,8 +16,7 @@ from sklearn.metrics import accuracy_score
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# ✅ Load your full dataset (replace with actual file or data source)
-# For demo, using a small embedded sample — replace with your full dataset for real accuracy
+# ✅ Replace this with your full dataset for real accuracy
 df = pd.DataFrame({
     "international_plan": [0, 1, 0, 1],
     "voice_mail_plan": [1, 0, 1, 0],
@@ -65,7 +64,7 @@ model_dict = {
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Train models and compute accuracy
+# Train models and compute exact accuracy
 model_scores = {}
 trained_pipelines = {}
 
@@ -102,7 +101,7 @@ selected_accuracy = model_scores[model_choice]
 # ✅ Display churn prediction and exact accuracy
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{selected_accuracy:.4f}`")  # Match notebook format
+st.markdown(f"**Model Accuracy:** `{selected_accuracy}`")  # No rounding
 st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
 if prediction == 1:
@@ -122,5 +121,4 @@ st.subheader("🏆 Best Model Based on Accuracy")
 best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
 best_accuracy = model_scores[best_model_name]
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_accuracy:.4f}`")
-
+st.markdown(f"**Accuracy:** `{best_accuracy}`")  # No rounding
