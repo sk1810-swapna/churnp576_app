@@ -88,7 +88,7 @@ model_accuracy = {
 # Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy (from notebook):** `{model_accuracy[model_choice]}`")
+st.markdown(f"**Model Accuracy :** `{model_accuracy[model_choice]}`")
 st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
 if prediction == 1:
