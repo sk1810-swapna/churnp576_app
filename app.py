@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
@@ -74,7 +74,8 @@ for name, model in model_dict.items():
         ('classifier', model)
     ])
     pipe.fit(X_train, y_train)
-    acc = accuracy_score(y_test, pipe.predict(X_test))
+    y_pred = pipe.predict(X_test)
+    acc = accuracy_score(y_test, y_pred, normalize=True)
     model_scores[name] = acc
     trained_pipelines[name] = pipe
 
@@ -101,7 +102,7 @@ selected_accuracy = model_scores[model_choice]
 # ✅ Display churn prediction and exact accuracy
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{repr(selected_accuracy)}`")  # Full precision
+st.markdown(f"**Model Accuracy:** `{selected_accuracy:.10f}`")  # Full precision
 st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
 if prediction == 1:
@@ -121,5 +122,16 @@ st.subheader("🏆 Best Model Based on Accuracy")
 best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
 best_accuracy = model_scores[best_model_name]
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{repr(best_accuracy)}`")  # Full precision
+st.markdown(f"**Accuracy:** `{best_accuracy:.10f}`")  # Full precision
+
+# ✅ Optional: Evaluation metrics for selected model
+y_test_pred = selected_model.predict(X_test)
+precision = precision_score(y_test, y_test_pred)
+recall = recall_score(y_test, y_test_pred)
+f1 = f1_score(y_test, y_test_pred)
+
+st.subheader("📊 Evaluation Metrics")
+st.markdown(f"**Precision:** `{precision:.4f}`")
+st.markdown(f"**Recall:** `{recall:.4f}`")
+st.markdown(f"**F1-Score:** `{f1:.4f}`")
 
