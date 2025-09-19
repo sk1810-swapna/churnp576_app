@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
@@ -64,8 +64,8 @@ model_dict = {
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Train models and compute metrics
-model_metrics = {}
+# Train models and compute accuracy
+model_scores = {}
 trained_pipelines = {}
 
 for name, model in model_dict.items():
@@ -74,23 +74,24 @@ for name, model in model_dict.items():
         ('classifier', model)
     ])
     pipe.fit(X_train, y_train)
-    y_pred = pipe.predict(X_test)
-    metrics = {
-        "Accuracy": accuracy_score(y_test, y_pred),
-        "Precision": precision_score(y_test, y_pred),
-        "Recall": recall_score(y_test, y_pred),
-        "F1-Score": f1_score(y_test, y_pred)
-    }
-    model_metrics[name] = metrics
+    acc = accuracy_score(y_test, pipe.predict(X_test))
+    model_scores[name] = acc
     trained_pipelines[name] = pipe
 
-# Select best model by F1-score
-best_model_name = max(model_metrics.items(), key=lambda x: x[1]["F1-Score"])[0]
-best_model = trained_pipelines[best_model_name]
-best_metrics = model_metrics[best_model_name]
+# Display model comparison
+st.subheader("📊 Model Accuracy Comparison")
+score_df = pd.DataFrame(model_scores.items(), columns=["Model", "Accuracy"]).sort_values(by="Accuracy", ascending=False)
+st.table(score_df.style.format({"Accuracy": "{:.4f}"}))
+
+# Identify best model
+sorted_models = sorted(model_scores.items(), key=lambda x: (-x[1], x[0] != "Random Forest"))
+best_model_name = sorted_models[0][0]
+best_accuracy = model_scores[best_model_name]
 
 # Sidebar inputs
 st.sidebar.header("🔧 Input Customer Features")
+model_choice = st.sidebar.selectbox("Choose Algorithm for Prediction", list(model_dict.keys()))
+
 user_input = {}
 for col in numerical_features:
     min_val = float(df[col].min())
@@ -101,12 +102,16 @@ for col in numerical_features:
 user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted(df['plan_combination'].unique()))
 input_df = pd.DataFrame([user_input])
 
-# ✅ Predict using best model
-prediction = best_model.predict(input_df)[0]
-probability = best_model.predict_proba(input_df)[0][1]
+# Predict using selected model
+selected_model = trained_pipelines[model_choice]
+prediction = selected_model.predict(input_df)[0]
+probability = selected_model.predict_proba(input_df)[0][1]
+selected_accuracy = model_scores[model_choice]
 
-# ✅ Display churn prediction first
-st.subheader("📈 Churn Prediction (Using Best Model)")
+# ✅ Display churn prediction
+st.subheader("📈 Churn Prediction")
+st.markdown(f"**Selected Model:** `{model_choice}`")
+st.markdown(f"**Model Accuracy:** `{selected_accuracy:.4f}`")
 st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
 
 if prediction == 1:
@@ -121,10 +126,7 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# ✅ Display best model metrics after prediction
-st.subheader("🏆 Best Model Based on F1-Score")
+# ✅ Display best model after prediction
+st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_metrics['Accuracy']:.4f}`")
-st.markdown(f"**Precision:** `{best_metrics['Precision']:.4f}`")
-st.markdown(f"**Recall:** `{best_metrics['Recall']:.4f}`")
-st.markdown(f"**F1-Score:** `{best_metrics['F1-Score']:.4f}`")
+st.markdown(f"**Accuracy:** `{best_accuracy:.4f}`")
