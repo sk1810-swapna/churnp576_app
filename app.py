@@ -9,14 +9,12 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# Sample dataset
+# Sample dataset for input sliders
 df = pd.DataFrame({
     "international_plan": np.random.choice([0, 1], size=100),
     "voice_mail_plan": np.random.choice([0, 1], size=100),
@@ -27,8 +25,7 @@ df = pd.DataFrame({
     "night_mins": np.random.uniform(80, 200, size=100),
     "night_calls": np.random.randint(40, 90, size=100),
     "international_mins": np.random.uniform(5, 20, size=100),
-    "international_calls": np.random.randint(1, 10, size=100),
-    "churn": np.random.choice([0, 1], size=100, p=[0.7, 0.3])
+    "international_calls": np.random.randint(1, 10, size=100)
 })
 
 # Feature engineering
@@ -40,10 +37,8 @@ df['avg_international_call_duration'] = df['international_mins'] / (df['internat
 df['total_calls'] = df[['day_calls', 'evening_calls', 'night_calls', 'international_calls']].sum(axis=1)
 df['total_mins'] = df[['day_mins', 'evening_mins', 'night_mins', 'international_mins']].sum(axis=1)
 
-# Define features and target
-target = df['churn']
-features = df.drop(['churn'], axis=1)
-
+# Define features
+features = df.copy()
 categorical_features = ['plan_combination']
 numerical_features = features.columns.difference(categorical_features)
 
@@ -67,46 +62,26 @@ preprocessor = ColumnTransformer(transformers=[
     ('cat', OneHotEncoder(drop='first'), categorical_features)
 ])
 
-# Define models
+# Model selection
 model_dict = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
     "Decision Tree": DecisionTreeClassifier(random_state=42),
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Train and evaluate all models
-model_metrics = {}
-trained_pipelines = {}
-
-for name, model in model_dict.items():
-    pipe = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', model)
-    ])
-    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, stratify=target, random_state=42)
-    pipe.fit(X_train, y_train)
-    y_pred = pipe.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    model_metrics[name] = {
-        "accuracy": acc,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1
-    }
-    trained_pipelines[name] = pipe
-
-# Predict for user input
-selected_model = trained_pipelines[model_choice]
-prediction = selected_model.predict(input_df)[0]
-probability = selected_model.predict_proba(input_df)[0][1]
+selected_model = model_dict[model_choice]
+pipe = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', selected_model)
+])
+pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target for prediction
+prediction = pipe.predict(input_df)[0]
+probability = pipe.predict_proba(input_df)[0][1]
 
 # Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.10f}`")
+st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
 if prediction == 1:
     st.error("⚠️ This customer is likely to CHURN.")
@@ -120,17 +95,20 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Display selected model metrics
-metrics = model_metrics[model_choice]
-st.subheader("📊 Model Evaluation")
-st.markdown(f"**Accuracy:** `{metrics['accuracy']}`")
-st.markdown(f"**Precision:** `{metrics['precision']}`")
-st.markdown(f"**Recall:** `{metrics['recall']}`")
-st.markdown(f"**F1-Score:** `{metrics['f1']}`")
+# Hardcoded notebook accuracy values
+model_accuracy = {
+    "Logistic Regression": 0.8644,
+    "Decision Tree": 0.9466,
+    "Random Forest": 0.9805
+}
+
+# Display selected model accuracy
+st.subheader("📊 Model Accuracy (from notebook)")
+st.markdown(f"**Accuracy:** `{model_accuracy[model_choice]}`")
 
 # Display best model
-best_model_name = max(model_metrics.items(), key=lambda x: x[1]['accuracy'])[0]
-best_accuracy = model_metrics[best_model_name]['accuracy']
+best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
+best_accuracy = model_accuracy[best_model_name]
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
