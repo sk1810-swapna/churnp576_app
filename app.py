@@ -16,7 +16,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# Sample dataset (replace with full dataset for production)
+# Sample dataset
 df = pd.DataFrame({
     "international_plan": [0, 1, 0, 1],
     "voice_mail_plan": [1, 0, 1, 0],
@@ -63,6 +63,9 @@ model_dict = {
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
+# Dynamic CV folds
+cv_folds = min(5, len(df))
+
 # Train models and compute metrics
 model_metrics = {}
 trained_pipelines = {}
@@ -73,7 +76,7 @@ for name, model in model_dict.items():
         ('classifier', model)
     ])
     trained_pipelines[name] = pipe
-    y_pred = cross_val_predict(pipe, features, target, cv=5)
+    y_pred = cross_val_predict(pipe, features, target, cv=cv_folds)
     precision = precision_score(target, y_pred)
     recall = recall_score(target, y_pred)
     f1 = f1_score(target, y_pred)
@@ -122,7 +125,7 @@ st.pyplot(fig)
 
 # Display metrics
 metrics = model_metrics[model_choice]
-st.subheader("📊 Evaluation Metrics (5-Fold CV)")
+st.subheader("📊 Evaluation Metrics (Cross-Validation)")
 st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
 st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
 st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
@@ -133,3 +136,4 @@ best_f1 = model_metrics[best_model_name]['f1']
 st.subheader("🏆 Best Model Based on F1-Score")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**F1-Score:** `{best_f1:.4f}`")
+
