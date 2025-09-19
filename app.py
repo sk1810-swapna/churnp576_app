@@ -68,6 +68,15 @@ model_metrics = {}
 trained_pipelines = {}
 
 for name, model in model_dict.items():
+    if len(np.unique(y_train)) < 2:
+        model_metrics[name] = {
+            "precision": None,
+            "recall": None,
+            "f1": None,
+            "error": "Training data has only one class. Model skipped."
+        }
+        continue
+
     pipe = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('classifier', model)
@@ -99,38 +108,47 @@ user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted
 input_df = pd.DataFrame([user_input])
 
 # Predict using selected model
-selected_model = trained_pipelines[model_choice]
-prediction = selected_model.predict(input_df)[0]
-probability = selected_model.predict_proba(input_df)[0][1]
-
-# Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
-if prediction == 1:
-    st.error("⚠️ This customer is likely to CHURN.")
+if model_choice not in trained_pipelines:
+    st.warning("⚠️ Model could not be trained due to insufficient class diversity in training data.")
 else:
-    st.success("✅ This customer is likely to STAY loyal.")
+    selected_model = trained_pipelines[model_choice]
+    prediction = selected_model.predict(input_df)[0]
+    probability = selected_model.predict_proba(input_df)[0][1]
+    st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
-# Visualization
-fig, ax = plt.subplots(figsize=(4, 3))
-sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
-ax.set_title("Churn Probability Breakdown")
-ax.set_ylabel("Probability")
-st.pyplot(fig)
+    if prediction == 1:
+        st.error("⚠️ This customer is likely to CHURN.")
+    else:
+        st.success("✅ This customer is likely to STAY loyal.")
+
+    # Visualization
+    fig, ax = plt.subplots(figsize=(4, 3))
+    sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
+    ax.set_title("Churn Probability Breakdown")
+    ax.set_ylabel("Probability")
+    st.pyplot(fig)
 
 # Display metrics
 metrics = model_metrics[model_choice]
 st.subheader("📊 Evaluation Metrics (Train/Test Split)")
-st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
-st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
-st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
+if metrics.get("error"):
+    st.warning(metrics["error"])
+else:
+    st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
+    st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
+    st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
 
 # Best model by F1-score
-best_model_name = max(model_metrics.items(), key=lambda x: x[1]['f1'])[0]
-best_f1 = model_metrics[best_model_name]['f1']
-st.subheader("🏆 Best Model Based on F1-Score")
-st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**F1-Score:** `{best_f1:.4f}`")
-
+valid_models = {k: v for k, v in model_metrics.items() if v.get("f1") is not None}
+if valid_models:
+    best_model_name = max(valid_models.items(), key=lambda x: x[1]['f1'])[0]
+    best_f1 = valid_models[best_model_name]['f1']
+    st.subheader("🏆 Best Model Based on F1-Score")
+    st.markdown(f"**Model:** `{best_model_name}`")
+    st.markdown(f"**F1-Score:** `{best_f1:.4f}`")
+else:
+    st.subheader("🏆 Best Model Based on F1-Score")
+    st.warning("No model could be evaluated due to insufficient class diversity.")
