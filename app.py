@@ -9,12 +9,14 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# Sample dataset (for UI and prediction only)
+# Sample dataset
 df = pd.DataFrame({
     "international_plan": np.random.choice([0, 1], size=100),
     "voice_mail_plan": np.random.choice([0, 1], size=100),
@@ -45,54 +47,9 @@ features = df.drop(['churn'], axis=1)
 categorical_features = ['plan_combination']
 numerical_features = features.columns.difference(categorical_features)
 
-# Preprocessing
-preprocessor = ColumnTransformer(transformers=[
-    ('num', StandardScaler(), numerical_features),
-    ('cat', OneHotEncoder(drop='first'), categorical_features)
-])
-
-# Define models
-model_dict = {
-    "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-    "Decision Tree": DecisionTreeClassifier(random_state=42),
-    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
-}
-
-# Hardcoded notebook metrics
-model_metrics = {
-    "Logistic Regression": {
-        "precision": 0.5975,
-        "recall": 0.1967,
-        "f1": 0.2960,
-        "accuracy": 0.2960
-    },
-    "Decision Tree": {
-        "precision": 0.7916,
-        "recall": 0.8571,
-        "f1": 0.8231,
-        "accuracy": 0.8231
-    },
-    "Random Forest": {
-        "precision": 0.9975,
-        "recall": 0.8427,
-        "f1": 0.9136,
-        "accuracy": 0.9136
-    }
-}
-
-# Train models for prediction
-trained_pipelines = {}
-for name, model in model_dict.items():
-    pipe = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', model)
-    ])
-    pipe.fit(features, target)
-    trained_pipelines[name] = pipe
-
 # Sidebar inputs
 st.sidebar.header("🔧 Input Customer Features")
-model_choice = st.sidebar.selectbox("Choose Algorithm", list(model_dict.keys()))
+model_choice = st.sidebar.selectbox("Choose Algorithm", ["Logistic Regression", "Decision Tree", "Random Forest"])
 
 user_input = {}
 for col in numerical_features:
@@ -104,39 +61,64 @@ for col in numerical_features:
 user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted(df['plan_combination'].unique()))
 input_df = pd.DataFrame([user_input])
 
-# Predict using selected model
-selected_model = trained_pipelines[model_choice]
-prediction = selected_model.predict(input_df)[0]
-probability = selected_model.predict_proba(input_df)[0][1]
+# Append user input to dataset (simulate new customer)
+df_augmented = pd.concat([features, input_df], ignore_index=True)
+target_augmented = pd.concat([target, pd.Series([0])], ignore_index=True)  # Dummy label for input
+
+# Preprocessing
+preprocessor = ColumnTransformer(transformers=[
+    ('num', StandardScaler(), numerical_features),
+    ('cat', OneHotEncoder(drop='first'), categorical_features)
+])
+
+# Model selection
+if model_choice == "Logistic Regression":
+    model = LogisticRegression(max_iter=1000, random_state=42)
+elif model_choice == "Decision Tree":
+    model = DecisionTreeClassifier(random_state=42)
+else:
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Pipeline and training
+pipe = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', model)
+])
+
+X_train, X_test, y_train, y_test = train_test_split(df_augmented, target_augmented, test_size=0.2, stratify=target_augmented, random_state=42)
+pipe.fit(X_train, y_train)
+y_pred = pipe.predict(X_test)
+
+# Metrics
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+
+# Predict for user input
+user_prediction = pipe.predict(input_df)[0]
+user_probability = pipe.predict_proba(input_df)[0][1]
 
 # Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
+st.markdown(f"**Churn Prediction Probability:** `{user_probability:.4f}`")
 
-if prediction == 1:
+if user_prediction == 1:
     st.error("⚠️ This customer is likely to CHURN.")
 else:
     st.success("✅ This customer is likely to STAY loyal.")
 
 # Visualization
 fig, ax = plt.subplots(figsize=(4, 3))
-sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
+sns.barplot(x=["Stay", "Churn"], y=[1 - user_probability, user_probability], palette="Set2", ax=ax)
 ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
 # Display metrics
-metrics = model_metrics[model_choice]
-st.subheader("📊 Evaluation Metrics (from notebook)")
-st.markdown(f"**Accuracy:** `{metrics['accuracy']}`")
-st.markdown(f"**Precision:** `{metrics['precision']}`")
-st.markdown(f"**Recall:** `{metrics['recall']}`")
-st.markdown(f"**F1-Score:** `{metrics['f1']}`")
-
-# Best model by accuracy
-best_model_name = max(model_metrics.items(), key=lambda x: x[1]['accuracy'])[0]
-best_accuracy = model_metrics[best_model_name]['accuracy']
-st.subheader("🏆 Best Model Based on Accuracy")
-st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_accuracy}`")
+st.subheader("📊 Model Evaluation (with updated input)")
+st.markdown(f"**Accuracy:** `{accuracy:.4f}`")
+st.markdown(f"**Precision:** `{precision:.4f}`")
+st.markdown(f"**Recall:** `{recall:.4f}`")
+st.markdown(f"**F1-Score:** `{f1:.4f}`")
