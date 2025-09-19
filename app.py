@@ -16,19 +16,19 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# Sample dataset
+# ✅ Replace with your full dataset for production
 df = pd.DataFrame({
-    "international_plan": [0, 1, 0, 1],
-    "voice_mail_plan": [1, 0, 1, 0],
-    "day_mins": [300, 120, 250, 180],
-    "day_calls": [100, 80, 90, 85],
-    "evening_mins": [200, 150, 180, 160],
-    "evening_calls": [90, 85, 88, 82],
-    "night_mins": [150, 130, 140, 135],
-    "night_calls": [80, 75, 78, 76],
-    "international_mins": [10, 20, 15, 12],
-    "international_calls": [3, 5, 4, 3],
-    "churn": [0, 1, 0, 1]
+    "international_plan": np.random.choice([0, 1], size=100),
+    "voice_mail_plan": np.random.choice([0, 1], size=100),
+    "day_mins": np.random.uniform(100, 300, size=100),
+    "day_calls": np.random.randint(50, 120, size=100),
+    "evening_mins": np.random.uniform(100, 250, size=100),
+    "evening_calls": np.random.randint(50, 100, size=100),
+    "night_mins": np.random.uniform(80, 200, size=100),
+    "night_calls": np.random.randint(40, 90, size=100),
+    "international_mins": np.random.uniform(5, 20, size=100),
+    "international_calls": np.random.randint(1, 10, size=100),
+    "churn": np.random.choice([0, 1], size=100, p=[0.7, 0.3])
 })
 
 # Feature engineering
@@ -61,31 +61,22 @@ model_dict = {
 }
 
 # Train-test split
-X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.5, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, stratify=target, random_state=42)
 
 # Train models and compute metrics
 model_metrics = {}
 trained_pipelines = {}
 
 for name, model in model_dict.items():
-    if len(np.unique(y_train)) < 2:
-        model_metrics[name] = {
-            "precision": None,
-            "recall": None,
-            "f1": None,
-            "error": "Training data has only one class. Model skipped."
-        }
-        continue
-
     pipe = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('classifier', model)
     ])
     pipe.fit(X_train, y_train)
     y_pred = pipe.predict(X_test)
-    precision = precision_score(y_test, y_pred, zero_division=0)
-    recall = recall_score(y_test, y_pred, zero_division=0)
-    f1 = f1_score(y_test, y_pred, zero_division=0)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
     model_metrics[name] = {
         "precision": precision,
         "recall": recall,
@@ -108,47 +99,37 @@ user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted
 input_df = pd.DataFrame([user_input])
 
 # Predict using selected model
+selected_model = trained_pipelines[model_choice]
+prediction = selected_model.predict(input_df)[0]
+probability = selected_model.predict_proba(input_df)[0][1]
+
+# Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
+st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
-if model_choice not in trained_pipelines:
-    st.warning("⚠️ Model could not be trained due to insufficient class diversity in training data.")
+if prediction == 1:
+    st.error("⚠️ This customer is likely to CHURN.")
 else:
-    selected_model = trained_pipelines[model_choice]
-    prediction = selected_model.predict(input_df)[0]
-    probability = selected_model.predict_proba(input_df)[0][1]
-    st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
+    st.success("✅ This customer is likely to STAY loyal.")
 
-    if prediction == 1:
-        st.error("⚠️ This customer is likely to CHURN.")
-    else:
-        st.success("✅ This customer is likely to STAY loyal.")
-
-    # Visualization
-    fig, ax = plt.subplots(figsize=(4, 3))
-    sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
-    ax.set_title("Churn Probability Breakdown")
-    ax.set_ylabel("Probability")
-    st.pyplot(fig)
+# Visualization
+fig, ax = plt.subplots(figsize=(4, 3))
+sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
+ax.set_title("Churn Probability Breakdown")
+ax.set_ylabel("Probability")
+st.pyplot(fig)
 
 # Display metrics
 metrics = model_metrics[model_choice]
-st.subheader("📊 Evaluation Metrics (Train/Test Split)")
-if metrics.get("error"):
-    st.warning(metrics["error"])
-else:
-    st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
-    st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
-    st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
+st.subheader("📊 Evaluation Metrics")
+st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
+st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
+st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
 
 # Best model by F1-score
-valid_models = {k: v for k, v in model_metrics.items() if v.get("f1") is not None}
-if valid_models:
-    best_model_name = max(valid_models.items(), key=lambda x: x[1]['f1'])[0]
-    best_f1 = valid_models[best_model_name]['f1']
-    st.subheader("🏆 Best Model Based on F1-Score")
-    st.markdown(f"**Model:** `{best_model_name}`")
-    st.markdown(f"**F1-Score:** `{best_f1:.4f}`")
-else:
-    st.subheader("🏆 Best Model Based on F1-Score")
-    st.warning("No model could be evaluated due to insufficient class diversity.")
+best_model_name = max(model_metrics.items(), key=lambda x: x[1]['f1'])[0]
+best_f1 = model_metrics[best_model_name]['f1']
+st.subheader("🏆 Best Model Based on F1-Score")
+st.markdown(f"**Model:** `{best_model_name}`")
+st.markdown(f"**F1-Score:** `{best_f1:.4f}`")
