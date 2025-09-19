@@ -9,12 +9,14 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# Sample dataset (for UI and prediction only)
+# Sample dataset
 df = pd.DataFrame({
     "international_plan": np.random.choice([0, 1], size=100),
     "voice_mail_plan": np.random.choice([0, 1], size=100),
@@ -45,6 +47,20 @@ features = df.drop(['churn'], axis=1)
 categorical_features = ['plan_combination']
 numerical_features = features.columns.difference(categorical_features)
 
+# Sidebar inputs
+st.sidebar.header("🔧 Input Customer Features")
+model_choice = st.sidebar.selectbox("Choose Algorithm", ["Logistic Regression", "Decision Tree", "Random Forest"])
+
+user_input = {}
+for col in numerical_features:
+    min_val = float(df[col].min())
+    max_val = float(df[col].max())
+    mean_val = float(df[col].mean())
+    user_input[col] = st.sidebar.slider(col, min_value=min_val, max_value=max_val, value=mean_val)
+
+user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted(df['plan_combination'].unique()))
+input_df = pd.DataFrame([user_input])
+
 # Preprocessing
 preprocessor = ColumnTransformer(transformers=[
     ('num', StandardScaler(), numerical_features),
@@ -58,53 +74,31 @@ model_dict = {
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Hardcoded notebook metrics
-model_metrics = {
-    "Logistic Regression": {
-        "precision": 0.5975,
-        "recall": 0.1967,
-        "f1": 0.2960,
-        "accuracy": 0.2960
-    },
-    "Decision Tree": {
-        "precision": 0.7916,
-        "recall": 0.8571,
-        "f1": 0.8231,
-        "accuracy": 0.8231
-    },
-    "Random Forest": {
-        "precision": 0.9975,
-        "recall": 0.8427,
-        "f1": 0.9136,
-        "accuracy": 0.9136
-    }
-}
-
-# Train models for prediction
+# Train and evaluate all models
+model_metrics = {}
 trained_pipelines = {}
+
 for name, model in model_dict.items():
     pipe = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('classifier', model)
     ])
-    pipe.fit(features, target)
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, stratify=target, random_state=42)
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    model_metrics[name] = {
+        "accuracy": acc,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
+    }
     trained_pipelines[name] = pipe
 
-# Sidebar inputs
-st.sidebar.header("🔧 Input Customer Features")
-model_choice = st.sidebar.selectbox("Choose Algorithm", list(model_dict.keys()))
-
-user_input = {}
-for col in numerical_features:
-    min_val = float(df[col].min())
-    max_val = float(df[col].max())
-    mean_val = float(df[col].mean())
-    user_input[col] = st.sidebar.slider(col, min_value=min_val, max_value=max_val, value=mean_val)
-
-user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted(df['plan_combination'].unique()))
-input_df = pd.DataFrame([user_input])
-
-# Predict using selected model
+# Predict for user input
 selected_model = trained_pipelines[model_choice]
 prediction = selected_model.predict(input_df)[0]
 probability = selected_model.predict_proba(input_df)[0][1]
@@ -112,7 +106,7 @@ probability = selected_model.predict_proba(input_df)[0][1]
 # Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
+st.markdown(f"**Churn Prediction Probability:** `{probability:.10f}`")
 
 if prediction == 1:
     st.error("⚠️ This customer is likely to CHURN.")
@@ -126,18 +120,17 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Display metrics
+# Display selected model metrics
 metrics = model_metrics[model_choice]
-st.subheader("📊 Evaluation Metrics (from notebook)")
+st.subheader("📊 Model Evaluation")
 st.markdown(f"**Accuracy:** `{metrics['accuracy']}`")
 st.markdown(f"**Precision:** `{metrics['precision']}`")
 st.markdown(f"**Recall:** `{metrics['recall']}`")
 st.markdown(f"**F1-Score:** `{metrics['f1']}`")
 
-# Best model by accuracy
+# Display best model
 best_model_name = max(model_metrics.items(), key=lambda x: x[1]['accuracy'])[0]
 best_accuracy = model_metrics[best_model_name]['accuracy']
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
-
