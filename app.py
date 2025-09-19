@@ -17,7 +17,7 @@ st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
 # 🚫 No file upload — use built-in dataset
-df = pd.read_csv("telecommunications_churn(1).csv")  # Replace with your actual path or load from memory
+df = pd.read_csv("telecommunications_churn.csv")  # Replace with your actual path or load from memory
 
 # Feature engineering
 df['plan_combination'] = df['international_plan'].astype(str) + "_" + df['voice_mail_plan'].astype(str)
