@@ -9,14 +9,14 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import train_test_split, cross_val_predict
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# ✅ Replace with your full dataset for real accuracy
+# Sample dataset (replace with full dataset for production)
 df = pd.DataFrame({
     "international_plan": [0, 1, 0, 1],
     "voice_mail_plan": [1, 0, 1, 0],
@@ -44,7 +44,6 @@ df['total_mins'] = df[['day_mins', 'evening_mins', 'night_mins', 'international_
 target = df['churn']
 features = df.drop(['churn'], axis=1)
 
-# Column types
 categorical_features = ['plan_combination']
 numerical_features = features.columns.difference(categorical_features)
 
@@ -54,9 +53,6 @@ preprocessor = ColumnTransformer(transformers=[
     ('cat', OneHotEncoder(drop='first'), categorical_features)
 ])
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
-
 # Define models
 model_dict = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
@@ -64,8 +60,11 @@ model_dict = {
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Train models and compute exact accuracy
-model_scores = {}
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+# Train models and compute metrics
+model_metrics = {}
 trained_pipelines = {}
 
 for name, model in model_dict.items():
@@ -73,11 +72,16 @@ for name, model in model_dict.items():
         ('preprocessor', preprocessor),
         ('classifier', model)
     ])
-    pipe.fit(X_train, y_train)
-    y_pred = pipe.predict(X_test)
-    acc = accuracy_score(y_test, y_pred, normalize=True)
-    model_scores[name] = acc
     trained_pipelines[name] = pipe
+    y_pred = cross_val_predict(pipe, features, target, cv=5)
+    precision = precision_score(target, y_pred)
+    recall = recall_score(target, y_pred)
+    f1 = f1_score(target, y_pred)
+    model_metrics[name] = {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
+    }
 
 # Sidebar inputs
 st.sidebar.header("🔧 Input Customer Features")
@@ -95,43 +99,37 @@ input_df = pd.DataFrame([user_input])
 
 # Predict using selected model
 selected_model = trained_pipelines[model_choice]
+selected_model.fit(features, target)
 prediction = selected_model.predict(input_df)[0]
 probability = selected_model.predict_proba(input_df)[0][1]
-selected_accuracy = model_scores[model_choice]
 
-# ✅ Display churn prediction and exact accuracy
+# Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{selected_accuracy:.10f}`")  # Full precision
-st.markdown(f"**Churn Prediction Probability:** `{probability * 100:.2f}%`")
+st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
 if prediction == 1:
     st.error("⚠️ This customer is likely to CHURN.")
 else:
     st.success("✅ This customer is likely to STAY loyal.")
 
-# ✅ Visualization
+# Visualization
 fig, ax = plt.subplots(figsize=(4, 3))
 sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
 ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# ✅ Display best model after prediction
-st.subheader("🏆 Best Model Based on Accuracy")
-best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
-best_accuracy = model_scores[best_model_name]
+# Display metrics
+metrics = model_metrics[model_choice]
+st.subheader("📊 Evaluation Metrics (5-Fold CV)")
+st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
+st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
+st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
+
+# Best model by F1-score
+best_model_name = max(model_metrics.items(), key=lambda x: x[1]['f1'])[0]
+best_f1 = model_metrics[best_model_name]['f1']
+st.subheader("🏆 Best Model Based on F1-Score")
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_accuracy:.10f}`")  # Full precision
-
-# ✅ Optional: Evaluation metrics for selected model
-y_test_pred = selected_model.predict(X_test)
-precision = precision_score(y_test, y_test_pred)
-recall = recall_score(y_test, y_test_pred)
-f1 = f1_score(y_test, y_test_pred)
-
-st.subheader("📊 Evaluation Metrics")
-st.markdown(f"**Precision:** `{precision:.4f}`")
-st.markdown(f"**Recall:** `{recall:.4f}`")
-st.markdown(f"**F1-Score:** `{f1:.4f}`")
-
+st.markdown(f"**F1-Score:** `{best_f1:.4f}`")
