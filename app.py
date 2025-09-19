@@ -78,9 +78,17 @@ pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  
 prediction = pipe.predict(input_df)[0]
 probability = pipe.predict_proba(input_df)[0][1]
 
+# Hardcoded notebook accuracy values
+model_accuracy = {
+    "Logistic Regression": 0.8644,
+    "Decision Tree": 0.9466,
+    "Random Forest": 0.9805
+}
+
 # Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
+st.markdown(f"**Model Accuracy (from notebook):** `{model_accuracy[model_choice]}`")
 st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
 if prediction == 1:
@@ -95,20 +103,10 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Hardcoded notebook accuracy values
-model_accuracy = {
-    "Logistic Regression": 0.8644,
-    "Decision Tree": 0.9466,
-    "Random Forest": 0.9805
-}
-
-# Display selected model accuracy
-st.subheader("📊 Model Accuracy (from notebook)")
-st.markdown(f"**Accuracy:** `{model_accuracy[model_choice]}`")
-
 # Display best model
 best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
 best_accuracy = model_accuracy[best_model_name]
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
+
