@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# 🚫 No file upload — use built-in dataset
+#  No file upload — use built-in dataset
 df = pd.read_csv("telecommunications_churn.csv")  # Replace with your actual path or load from memory
 
 # Feature engineering
