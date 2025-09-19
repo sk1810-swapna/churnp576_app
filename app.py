@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split, cross_val_predict
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 # Page setup
@@ -61,10 +61,7 @@ model_dict = {
 }
 
 # Train-test split
-X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
-
-# Dynamic CV folds
-cv_folds = min(5, len(df))
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.5, random_state=42)
 
 # Train models and compute metrics
 model_metrics = {}
@@ -75,16 +72,17 @@ for name, model in model_dict.items():
         ('preprocessor', preprocessor),
         ('classifier', model)
     ])
-    trained_pipelines[name] = pipe
-    y_pred = cross_val_predict(pipe, features, target, cv=cv_folds)
-    precision = precision_score(target, y_pred)
-    recall = recall_score(target, y_pred)
-    f1 = f1_score(target, y_pred)
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
+    precision = precision_score(y_test, y_pred, zero_division=0)
+    recall = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
     model_metrics[name] = {
         "precision": precision,
         "recall": recall,
         "f1": f1
     }
+    trained_pipelines[name] = pipe
 
 # Sidebar inputs
 st.sidebar.header("🔧 Input Customer Features")
@@ -102,7 +100,6 @@ input_df = pd.DataFrame([user_input])
 
 # Predict using selected model
 selected_model = trained_pipelines[model_choice]
-selected_model.fit(features, target)
 prediction = selected_model.predict(input_df)[0]
 probability = selected_model.predict_proba(input_df)[0][1]
 
@@ -125,7 +122,7 @@ st.pyplot(fig)
 
 # Display metrics
 metrics = model_metrics[model_choice]
-st.subheader("📊 Evaluation Metrics (Cross-Validation)")
+st.subheader("📊 Evaluation Metrics (Train/Test Split)")
 st.markdown(f"**Precision:** `{metrics['precision']:.4f}`")
 st.markdown(f"**Recall:** `{metrics['recall']:.4f}`")
 st.markdown(f"**F1-Score:** `{metrics['f1']:.4f}`")
