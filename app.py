@@ -14,7 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
 st.title("📞 Telecom Churn Prediction App")
 
-# Sample dataset for input sliders
+# Sample dataset for slider ranges
 df = pd.DataFrame({
     "international_plan": np.random.choice([0, 1], size=100),
     "voice_mail_plan": np.random.choice([0, 1], size=100),
@@ -46,12 +46,22 @@ numerical_features = features.columns.difference(categorical_features)
 st.sidebar.header("🔧 Input Customer Features")
 model_choice = st.sidebar.selectbox("Choose Algorithm", ["Logistic Regression", "Decision Tree", "Random Forest"])
 
+# Initialize session state for sliders
+for col in numerical_features:
+    if f"{col}_value" not in st.session_state:
+        st.session_state[f"{col}_value"] = round(float(df[col].mean()), 2)
+
+# Create sliders with session state
 user_input = {}
 for col in numerical_features:
-    min_val = float(df[col].min())
-    max_val = float(df[col].max())
-    mean_val = float(df[col].mean())
-    user_input[col] = st.sidebar.slider(col, min_value=min_val, max_value=max_val, value=mean_val)
+    user_input[col] = st.sidebar.slider(
+        label=col,
+        min_value=round(float(df[col].min()), 2),
+        max_value=round(float(df[col].max()), 2),
+        value=st.session_state[f"{col}_value"],
+        step=0.01,
+        key=f"{col}_value"
+    )
 
 user_input['plan_combination'] = st.sidebar.selectbox("Plan Combination", sorted(df['plan_combination'].unique()))
 input_df = pd.DataFrame([user_input])
@@ -74,7 +84,7 @@ pipe = Pipeline(steps=[
     ('preprocessor', preprocessor),
     ('classifier', selected_model)
 ])
-pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target for prediction
+pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
 prediction = pipe.predict(input_df)[0]
 probability = pipe.predict_proba(input_df)[0][1]
 
@@ -88,7 +98,7 @@ model_accuracy = {
 # Display prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy :** `{model_accuracy[model_choice]}`")
+st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]}`")
 st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
 if prediction == 1:
@@ -109,4 +119,3 @@ best_accuracy = model_accuracy[best_model_name]
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
-
