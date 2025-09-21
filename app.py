@@ -43,7 +43,7 @@ categorical_features = ['plan_combination']
 numerical_features = features.columns.difference(categorical_features)
 
 # Sidebar inputs
-st.sidebar.header("🔧 Input Customer Features")
+st.sidebar.header("Input Customer Features")
 model_choice = st.sidebar.selectbox("Choose Algorithm", ["Logistic Regression", "Decision Tree", "Random Forest"])
 
 # Initialize session state for sliders
@@ -102,7 +102,7 @@ st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]}`")
 st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
 
 if prediction == 1:
-    st.error("⚠️ This customer is likely to CHURN.")
+    st.error("⚠ This customer is likely to CHURN.")
 else:
     st.success("✅ This customer is likely to STAY loyal.")
 
@@ -116,7 +116,7 @@ st.pyplot(fig)
 # Display best model
 best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
 best_accuracy = model_accuracy[best_model_name]
-st.subheader("🏆 Best Model Based on Accuracy")
+st.subheader(" Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
 
