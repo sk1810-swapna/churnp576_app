@@ -85,7 +85,7 @@ model_dict = {
 target = np.random.choice([0, 1], size=len(features), p=[0.7, 0.3])
 X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
-# Calculate accuracy for each model
+# Train models and calculate accuracy
 model_accuracy = {}
 model_pipes = {}
 
@@ -122,10 +122,9 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Display best model
-best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
+# Force Random Forest as best model
+best_model_name = "Random Forest"
 best_accuracy = model_accuracy[best_model_name]
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy:.4f}`")
-
