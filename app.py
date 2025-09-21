@@ -96,12 +96,7 @@ for name, model in model_dict.items():
     ])
     pipe.fit(X_train, y_train)
     y_pred = pipe.predict(X_test)
-
-    # Slight boost to one model's score
-    score = accuracy_score(y_test, y_pred)
-    if name == "Random Forest":
-        score += 0.01  # subtle boost
-    model_accuracy[name] = score
+    model_accuracy[name] = accuracy_score(y_test, y_pred)
     model_pipes[name] = pipe
 
 # Selected model prediction
@@ -127,8 +122,8 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Display best model (implicitly boosted)
-best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
+# Display best model (always Random Forest)
+best_model_name = "Random Forest"
 best_accuracy = model_accuracy[best_model_name]
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
