@@ -9,6 +9,8 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 # Page setup
 st.set_page_config(page_title="📞 Churn Prediction App", layout="centered")
@@ -79,36 +81,43 @@ model_dict = {
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-selected_model = model_dict[model_choice]
-pipe = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('classifier', selected_model)
-])
-pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
-prediction = pipe.predict(input_df)[0]
-probability = pipe.predict_proba(input_df)[0][1]
+# Generate dummy target and split
+target = np.random.choice([0, 1], size=len(features), p=[0.7, 0.3])
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
-# Hardcoded notebook accuracy values
-model_accuracy = {
-    "Logistic Regression": 0.8644,
-    "Decision Tree": 0.9466,
-    "Random Forest": 0.9805
-}
+# Calculate accuracy for each model
+model_accuracy = {}
+model_pipes = {}
 
-# Display prediction
+for name, model in model_dict.items():
+    pipe = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', model)
+    ])
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_test)
+    model_accuracy[name] = accuracy_score(y_test, y_pred)
+    model_pipes[name] = pipe
+
+# Selected model prediction
+selected_pipe = model_pipes[model_choice]
+selected_prediction = selected_pipe.predict(input_df)[0]
+selected_probability = selected_pipe.predict_proba(input_df)[0][1]
+
+# Display selected model prediction
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
+st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]:.4f}`")
+st.markdown(f"**Churn Prediction Probability:** `{selected_probability:.4f}`")
 
-if prediction == 1:
+if selected_prediction == 1:
     st.error("⚠ This customer is likely to CHURN.")
 else:
     st.success("✅ This customer is likely to STAY loyal.")
 
 # Visualization
 fig, ax = plt.subplots(figsize=(4, 3))
-sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
+sns.barplot(x=["Stay", "Churn"], y=[1 - selected_probability, selected_probability], palette="Set2", ax=ax)
 ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
@@ -116,7 +125,7 @@ st.pyplot(fig)
 # Display best model
 best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
 best_accuracy = model_accuracy[best_model_name]
-st.subheader(" Best Model Based on Accuracy")
+st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_accuracy}`")
+st.markdown(f"**Accuracy:** `{best_accuracy:.4f}`")
 
