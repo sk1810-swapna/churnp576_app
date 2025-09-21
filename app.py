@@ -79,6 +79,14 @@ model_dict = {
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
+# Hardcoded notebook accuracy values
+model_accuracy = {
+    "Logistic Regression": 0.8644,
+    "Decision Tree": 0.9466,
+    "Random Forest": 0.9805
+}
+
+# Train and predict using selected model
 selected_model = model_dict[model_choice]
 pipe = Pipeline(steps=[
     ('preprocessor', preprocessor),
@@ -87,13 +95,6 @@ pipe = Pipeline(steps=[
 pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
 prediction = pipe.predict(input_df)[0]
 probability = pipe.predict_proba(input_df)[0][1]
-
-# Hardcoded notebook accuracy values
-model_accuracy = {
-    "Logistic Regression": 0.8644,
-    "Decision Tree": 0.9466,
-    "Random Forest": 0.9805
-}
 
 # Display prediction
 st.subheader("📈 Churn Prediction")
@@ -113,9 +114,17 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Display best model
-best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
+# Select best model based on accuracy × churn probability
+model_scores = {
+    name: (accuracy * pipe.predict_proba(input_df)[0][1])
+    for name, accuracy in model_accuracy.items()
+}
+best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
+best_score = model_scores[best_model_name]
 best_accuracy = model_accuracy[best_model_name]
-st.subheader("🏆 Best Model Based on Accuracy")
+
+# Display best model
+st.subheader("🏆 Best Model Based on Accuracy × Churn Probability")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
+st.markdown(f"**Score (Accuracy × Probability):** `{best_score:.4f}`")
