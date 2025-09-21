@@ -72,62 +72,68 @@ preprocessor = ColumnTransformer(transformers=[
     ('cat', OneHotEncoder(drop='first'), categorical_features)
 ])
 
-# Model selection
+# Model definitions
 model_dict = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
     "Decision Tree": DecisionTreeClassifier(random_state=42),
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Hardcoded notebook accuracy values
+# Hardcoded accuracy values
 model_accuracy = {
     "Logistic Regression": 0.8644,
     "Decision Tree": 0.9466,
     "Random Forest": 0.9805
 }
 
-# Generate dummy target once and reuse
+# Generate dummy target once
 dummy_target = np.random.choice([0, 1], size=len(features), p=[0.7, 0.3])
 
-# Train and predict using selected model
-selected_model = model_dict[model_choice]
-pipe = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('classifier', selected_model)
-])
-pipe.fit(features, dummy_target)
-prediction = pipe.predict(input_df)[0]
-probability = pipe.predict_proba(input_df)[0][1]
+# Train all models on same data
+model_predictions = {}
+model_probabilities = {}
 
-# Display prediction for selected model
+for name, model in model_dict.items():
+    pipe = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', model)
+    ])
+    pipe.fit(features, dummy_target)
+    model_predictions[name] = pipe.predict(input_df)[0]
+    model_probabilities[name] = pipe.predict_proba(input_df)[0][1]
+
+# Selected model output
+selected_prediction = model_predictions[model_choice]
+selected_probability = model_probabilities[model_choice]
+
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
 st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
+st.markdown(f"**Churn Prediction Probability:** `{selected_probability:.4f}`")
 
-if prediction == 1:
+if selected_prediction == 1:
     st.error("⚠️ This customer is likely to CHURN.")
 else:
     st.success("✅ This customer is likely to STAY loyal.")
 
 # Visualization
 fig, ax = plt.subplots(figsize=(4, 3))
-sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
+sns.barplot(x=["Stay", "Churn"], y=[1 - selected_probability, selected_probability], palette="Set2", ax=ax)
 ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Display best model based on accuracy and its churn prediction
+# Best model output
 best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
-best_model = model_dict[best_model_name]
-best_pipe = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('classifier', best_model)
-])
-best_pipe.fit(features, dummy_target)
-best_probability = best_pipe.predict_proba(input_df)[0][1]
+best_accuracy = model_accuracy[best_model_name]
+
+# Use selected model's probability if it's also the best
+if model_choice == best_model_name:
+    best_probability = selected_probability
+else:
+    best_probability = model_probabilities[best_model_name]
 
 st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{model_accuracy[best_model_name]}`")
+st.markdown(f"**Accuracy:** `{best_accuracy}`")
 st.markdown(f"**Churn Prediction Probability:** `{best_probability:.4f}`")
