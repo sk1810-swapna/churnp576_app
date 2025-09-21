@@ -96,7 +96,7 @@ pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  
 prediction = pipe.predict(input_df)[0]
 probability = pipe.predict_proba(input_df)[0][1]
 
-# Display prediction
+# Display prediction for selected model
 st.subheader("📈 Churn Prediction")
 st.markdown(f"**Selected Model:** `{model_choice}`")
 st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]}`")
@@ -114,17 +114,17 @@ ax.set_title("Churn Probability Breakdown")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Select best model based on accuracy × churn probability
-model_scores = {
-    name: (accuracy * pipe.predict_proba(input_df)[0][1])
-    for name, accuracy in model_accuracy.items()
-}
-best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
-best_score = model_scores[best_model_name]
-best_accuracy = model_accuracy[best_model_name]
+# Display best model based on accuracy and its churn prediction
+best_model_name = max(model_accuracy.items(), key=lambda x: x[1])[0]
+best_model = model_dict[best_model_name]
+best_pipe = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', best_model)
+])
+best_pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
+best_probability = best_pipe.predict_proba(input_df)[0][1]
 
-# Display best model
-st.subheader("🏆 Best Model Based on Accuracy × Churn Probability")
+st.subheader("🏆 Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
-st.markdown(f"**Accuracy:** `{best_accuracy}`")
-st.markdown(f"**Score (Accuracy × Probability):** `{best_score:.4f}`")
+st.markdown(f"**Accuracy:** `{model_accuracy[best_model_name]}`")
+st.markdown(f"**Churn Prediction Probability:** `{best_probability:.4f}`")
