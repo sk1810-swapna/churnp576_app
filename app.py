@@ -86,13 +86,16 @@ model_accuracy = {
     "Random Forest": 0.9805
 }
 
+# Generate dummy target once and reuse
+dummy_target = np.random.choice([0, 1], size=len(features), p=[0.7, 0.3])
+
 # Train and predict using selected model
 selected_model = model_dict[model_choice]
 pipe = Pipeline(steps=[
     ('preprocessor', preprocessor),
     ('classifier', selected_model)
 ])
-pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
+pipe.fit(features, dummy_target)
 prediction = pipe.predict(input_df)[0]
 probability = pipe.predict_proba(input_df)[0][1]
 
@@ -121,7 +124,7 @@ best_pipe = Pipeline(steps=[
     ('preprocessor', preprocessor),
     ('classifier', best_model)
 ])
-best_pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
+best_pipe.fit(features, dummy_target)
 best_probability = best_pipe.predict_proba(input_df)[0][1]
 
 st.subheader("🏆 Best Model Based on Accuracy")
