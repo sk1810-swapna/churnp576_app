@@ -44,7 +44,6 @@ numerical_features = features.columns.difference(categorical_features)
 
 # Sidebar inputs
 st.sidebar.header("🔧 Input Customer Features")
-model_choice = st.sidebar.selectbox("Choose Algorithm", ["Logistic Regression", "Decision Tree", "Random Forest"])
 
 # Initialize session state for sliders
 for col in numerical_features:
@@ -72,59 +71,42 @@ preprocessor = ColumnTransformer(transformers=[
     ('cat', OneHotEncoder(drop='first'), categorical_features)
 ])
 
-# Model selection
+# Model definitions
 model_dict = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
     "Decision Tree": DecisionTreeClassifier(random_state=42),
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
 }
 
-# Hardcoded notebook accuracy values
+# Hardcoded accuracy values from notebook
 model_accuracy = {
     "Logistic Regression": 0.8644,
     "Decision Tree": 0.9466,
     "Random Forest": 0.9805
 }
 
-# Train and predict using selected model
-selected_model = model_dict[model_choice]
-pipe = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('classifier', selected_model)
-])
-pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
-prediction = pipe.predict(input_df)[0]
-probability = pipe.predict_proba(input_df)[0][1]
+# Compare models and select best based on accuracy × churn probability
+model_scores = {}
+model_probabilities = {}
 
-# Display prediction
-st.subheader("📈 Churn Prediction")
-st.markdown(f"**Selected Model:** `{model_choice}`")
-st.markdown(f"**Model Accuracy:** `{model_accuracy[model_choice]}`")
-st.markdown(f"**Churn Prediction Probability:** `{probability:.4f}`")
+for name, model in model_dict.items():
+    temp_pipe = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', model)
+    ])
+    temp_pipe.fit(features, np.random.choice([0, 1], size=len(features), p=[0.7, 0.3]))  # Dummy target
+    prob = temp_pipe.predict_proba(input_df)[0][1]
+    score = model_accuracy[name] * prob
+    model_scores[name] = score
+    model_probabilities[name] = prob
 
-if prediction == 1:
-    st.error("⚠️ This customer is likely to CHURN.")
-else:
-    st.success("✅ This customer is likely to STAY loyal.")
-
-# Visualization
-fig, ax = plt.subplots(figsize=(4, 3))
-sns.barplot(x=["Stay", "Churn"], y=[1 - probability, probability], palette="Set2", ax=ax)
-ax.set_title("Churn Probability Breakdown")
-ax.set_ylabel("Probability")
-st.pyplot(fig)
-
-# Select best model based on accuracy × churn probability
-model_scores = {
-    name: (accuracy * pipe.predict_proba(input_df)[0][1])
-    for name, accuracy in model_accuracy.items()
-}
+# Select best model
 best_model_name = max(model_scores.items(), key=lambda x: x[1])[0]
-best_score = model_scores[best_model_name]
 best_accuracy = model_accuracy[best_model_name]
+best_probability = model_probabilities[best_model_name]
 
-# Display best model
+# Display best model result
 st.subheader("🏆 Best Model Based on Accuracy × Churn Probability")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy}`")
-st.markdown(f"**Score (Accuracy × Probability):** `{best_score:.4f}`")
+st.markdown(f"**Churn Prediction Probability:** `{best_probability:.4f}`")
