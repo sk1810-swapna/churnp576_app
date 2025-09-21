@@ -125,6 +125,6 @@ st.pyplot(fig)
 # Display best model (always Random Forest)
 best_model_name = "Random Forest"
 best_accuracy = model_accuracy[best_model_name]
-st.subheader("🏆 Best Model Based on Accuracy")
+st.subheader("Best Model Based on Accuracy")
 st.markdown(f"**Model:** `{best_model_name}`")
 st.markdown(f"**Accuracy:** `{best_accuracy:.4f}`")
